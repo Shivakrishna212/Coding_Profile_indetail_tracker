@@ -1,0 +1,49 @@
+// Function to send mails regarding codechef
+
+function sendcodechefweeklymails(
+  sheetId='1LmJf7SquwoTrQVSmMOpfpvqxJYermuvDNJ3IksWjUfw', sheetName='botdata')  {
+
+  try {
+    var sheet = SpreadsheetApp.openById(sheetId).getSheetByName(sheetName);
+    if (!sheet) {
+      throw new Error("Sheet '" + sheetName + "' not found.");
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow == 0) {
+      Logger.log("Sheet '" + sheetName + "' is empty.");
+      return;
+    }
+
+    var range = sheet.getRange("A2:W" + (lastRow + 1));
+    var data = range.getValues();
+
+    // Loop through each row and update ratings
+    for (var i = 0; i < data.length; i++) {
+      
+      var codecheflatestcontest = data[i][11];
+
+      Logger.log(codecheflatestcontest,typeof (codecheflatestcontest))
+      if (codecheflatestcontest===false){
+      var rollnumber = data[i][0];
+      var address = rollnumber+"@cmrithyderabad.edu.in";
+      var subject = "codechef contest not given this week "
+      var body = "Dear student , you havent given the latest contest of leetcode. please , try to be consistent to get better ."
+      Logger.log(address,subject,body)
+      MailApp.sendEmail(address,subject,body);
+      }
+      
+      
+
+     
+
+
+
+      // Sleep for 1 second to avoid rate limiting
+      Utilities.sleep(1000);
+    }
+      
+  } catch (error) {
+    Logger.log("Error updating ratings: " + error);
+  }
+}
