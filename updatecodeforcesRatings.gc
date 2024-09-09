@@ -1,0 +1,126 @@
+// Function to update codeforces ratings for all users in the spreadsheet
+function updatecodeforcesRatings(
+sheetId='1LmJf7SquwoTrQVSmMOpfpvqxJYermuvDNJ3IksWjUfw',sheetName='botdata') {
+  var url = "https://codeforces.com/api/contest.list";
+  // Fetch the data using UrlFetchApp
+  var response = UrlFetchApp.fetch(url);
+  // Check for successful response
+  if (response.getResponseCode() === 200) {
+    Logger.log(response.getContentText())
+   
+// Extract the data from the JSONP response(remove the callback function)
+    var contestsThisweek= "";
+    var content = response.getContentText();
+    var data = JSON.parse( content);
+
+    var z= "";
+    var contests = data.result;
+    for (var i=0;i<contests.length; i++){
+if(contests[i].relativeTimeSeconds<=604800&&contests[i].relativeTimeSeconds>=0){
+        contestsThisweek += contests[i].name;
+        z= contests[i].name;
+      }
+      else if (contests.relativeTimeSeconds>=0){
+        break;
+      }
+    }
+  Logger.log(contestsThisweek)
+  var sheet = SpreadsheetApp.openById(sheetId).getSheetByName(sheetName);
+  sheet.getRange(1, 20).setValue("contests in week"+ contestsThisweek);
+  sheet.getRange(1, 21).setValue("most recent contest " + z);
+
+
+}
+  try {
+var sheet = SpreadsheetApp.openById(sheetId).getSheetByName(sheetName);
+    if (!sheet) {
+      throw new Error("Sheet '" + sheetName + "' not found.");
+    }
+    var lastRow = sheet.getLastRow();
+    if (lastRow == 0) {
+      Logger.log("Sheet '" + sheetName + "' is empty.");
+      return;
+    }
+ 
+codeforceThisWeekContests(sheetId='replace with your sheetid', sheetName='replace with your sheet name')
+    var codeforcescontestoftheweek =sheet.getRange(1, 20).getValue();
+    var codeforcesrecentcontest =sheet.getRange(1, 21).getValue();
+
+
+    var range = sheet.getRange("A2:W" + (lastRow + 1));
+    var data = range.getValues();
+
+
+    // Loop through each row and update ratings
+    for (var i = 0; i < data.length; i++) {
+
+
+      var codeforcesHandle = data[i][17];
+      // Update Codeforces rating
+      var codeforcesInfo = getCodeforcesInfo(codeforcesHandle);
+      if (codeforcesInfo !== null) {
+sheet.getRange(i + 2, 19).setValue(codeforcesInfo.noofcontests);
+sheet.getRange(i+2,20).setValue(codeforcescontestoftheweek.includes(codeforcesInfo.contestName));
+sheet.getRange(i+2,21).setValue(codeforcesrecentcontest.includes(codeforcesInfo.contestName));
+       sheet.getRange(i + 2, 22).setValue(codeforcesInfo.contestName);
+       sheet.getRange(i + 2, 23).setValue(codeforcesInfo.latestranking );
+        sheet.getRange(i + 2, 24).setValue(codeforcesInfo.oldRating);
+        sheet.getRange(i + 2, 25).setValue(codeforcesInfo.newRating);
+        sheet.getRange(i + 2, 26).setValue(codeforcesInfo.newRating - codeforcesInfo.oldRating);
+      }
+      // Sleep for 1 second to avoid rate limiting
+      Utilities.sleep(1000);
+    }
+  } catch (error) {
+    Logger.log("Error updating ratings: " + error);
+  }
+}
+// Function to fetch Codeforces user's rating
+function getCodeforcesInfo(handle) {
+  try {
+    if (!handle) throw new Error("Codeforces handle is blank");
+  // Build the URL with the handle
+  var url = "https://codeforces.com/api/user.rating?handle=" + handle + "&jsonp=angular.callbacks._1";
+  // Fetch the data using UrlFetchApp
+  var response = UrlFetchApp.fetch(url);
+  // Check for successful response
+  if (response.getResponseCode() === 200) {
+    // Extract the data from the JSONP response (remove the callback function)
+var content = response.getContentText().replace('angular.callbacks._1({"status":"OK",', '{');
+ content = content.replace(");", '');
+ if ( !( content.includes("status"))){
+  var data = JSON.parse(content);
+  // Check if there are any ratings
+  if (data.result.length > 0) {
+      var rating = data.result[data.result.length - 1];
+      var ratings = {
+        contestName: rating.contestName,
+        oldRating: rating.oldRating,
+        newRating: rating.newRating,
+        latestranking : rating.rank,
+        noofcontests : data.result.length
+  };
+    }
+    else{
+      var ratings = {
+        contestName: "Hasn't given any yet",
+        oldRating: "Hasn't given any yet",
+        newRating: 0,
+        latestranking : 0,
+        noofcontests : 0
+  };
+    } 
+    return ratings;
+    }  }  }
+  catch (error) {
+    Logger.log("Error fetching Codeforces rating: " + error);
+    var ratings = {
+        contestName: "wrong name",
+        oldRating: "wrong name",
+        newRating: "wrong name",
+        latestranking : "wrong name",
+        noofcontests : "wrong name"
+  };
+    return ratings;
+  }
+}
